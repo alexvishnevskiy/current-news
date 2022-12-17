@@ -1,9 +1,11 @@
 package main
 
 import (
-	"net/http"
-
+	"fmt"
+	"github.com/alexvishnevskiy/current-news/backend/api"
 	"github.com/gin-gonic/gin"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
+	"net/http"
 )
 
 var db = make(map[string]string)
@@ -12,6 +14,9 @@ func setupRouter() *gin.Engine {
 	// Disable Console Color
 	// gin.DisableConsoleColor()
 	r := gin.Default()
+
+	p := ginprometheus.NewPrometheus("gin")
+	p.Use(r)
 
 	// Ping test
 	r.GET("/ping", func(c *gin.Context) {
@@ -68,7 +73,18 @@ func setupRouter() *gin.Engine {
 }
 
 func main() {
-	r := setupRouter()
+	//r := setupRouter()
+
+	resp, err := api.Fetch()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(resp)
+
+	//a := api.GetCountryData(resp)
+	//fmt.Println(a)
+
+	//fmt.Println(resp)
 	// Listen and Server in 0.0.0.0:8080
-	r.Run(":8080")
+	//r.Run(":8888")
 }

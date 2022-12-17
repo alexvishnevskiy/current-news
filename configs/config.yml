@@ -1,0 +1,15 @@
+url:
+  "https://newsdata.io/api/1/news"
+continent:
+  NorthAmerica:
+    [ca, us, mx, do, cu]
+  Europe:
+    [de, fr, it, gb, es]
+  Asia:
+    [ru, cn, in, au, kp]
+  Africa:
+    [za, eg, dz, cm, gh]
+  SouthAmerica:
+    [ar, br, cl, co, ec]
+category:
+  [business, politics, sports, science, entertainment] #[] to use all categories
