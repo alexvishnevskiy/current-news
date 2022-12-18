@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 )
 
@@ -19,7 +18,7 @@ type Config struct {
 	Categories []string `mapstructure:"category"`
 }
 
-func (c *Config) GetConf() *Config {
+func (c *Config) GetConf() error {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 
@@ -29,13 +28,14 @@ func (c *Config) GetConf() *Config {
 	viper.AddConfigPath("../configs")
 	viper.AddConfigPath(fmt.Sprintf("%s/configs", path))
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalln("Failed to load config")
+	err := viper.ReadInConfig()
+	if err != nil {
+		return err
 	}
 
-	err := viper.Unmarshal(c)
+	err = viper.Unmarshal(c)
 	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
+		return err
 	}
-	return c
+	return nil
 }

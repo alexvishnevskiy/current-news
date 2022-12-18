@@ -36,9 +36,9 @@ func Fetch(url string, countries []string, categories []string) (map[string]int,
 
 	// iterate over each continent and category
 	for _, category := range categories {
-		url = getUrl(url, countries, category, apiKey)
+		newUrl := getUrl(url, countries, category, apiKey)
 		// get data from news api
-		res, err := http.Get(url)
+		res, err := http.Get(newUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +62,10 @@ func FetchAllData() map[string]map[string]int {
 		countries  []string
 		continent  string
 	)
-	c.GetConf()
+	err := c.GetConf()
+	if err != nil {
+		fmt.Errorf("Failed to load config\n")
+	}
 
 	// dict to store all data
 	continentsDict := make(map[string]map[string]int)

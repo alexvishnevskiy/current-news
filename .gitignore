@@ -13,3 +13,6 @@
 
 # ide cache
 .idea
+
+# test files
+*.rdb

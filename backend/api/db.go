@@ -20,7 +20,7 @@ func (db *RedisDB) Connect(addr string) error {
 	return err
 }
 
-func (db *RedisDB) Exists(continent string) (bool, error) {
+func (db *RedisDB) SetExists(continent string) (bool, error) {
 	res, err := db.client.Exists(db.Ctx, continent).Result()
 
 	if err != nil {
@@ -32,9 +32,32 @@ func (db *RedisDB) Exists(continent string) (bool, error) {
 	}
 }
 
+func (db *RedisDB) MemberExists(continent string, category string) (bool, error) {
+	_, err := db.client.ZScore(db.Ctx, continent, category).Result()
+
+	switch err {
+	case redis.Nil:
+		return false, nil
+	case nil:
+		return true, nil
+	default:
+		return false, err
+	}
+}
+
 func (db *RedisDB) Add(continent string, score int, category string) error {
 	_, err := db.client.ZAdd(
 		db.Ctx, continent, redis.Z{Score: float64(score), Member: category}).Result()
+	return err
+}
+
+func (db *RedisDB) RemoveMember(continent string, category string) error {
+	_, err := db.client.ZRem(db.Ctx, continent, category).Result()
+	return err
+}
+
+func (db *RedisDB) RemoveSet(continent string) error {
+	_, err := db.client.Del(db.Ctx, continent).Result()
 	return err
 }
 
