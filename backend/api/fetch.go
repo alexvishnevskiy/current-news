@@ -3,9 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/viper"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"reflect"
@@ -32,59 +30,61 @@ type response struct {
 	} `json:"results"`
 }
 
-type config struct {
-	Url        string `mapstructure:"url"`
-	Continents struct {
-		NorthAmerica []string `mapstructure:"NorthAmerica"`
-		Europe       []string `mapstructure:"Europe"`
-		Asia         []string `mapstructure:"Asia"`
-		Africa       []string `mapstructure:"Africa"`
-		SouthAmerica []string `mapstructure:"SouthAmerica"`
-	} `mapstructure:"continent"`
-	Categories []string `mapstructure:"category"`
+func Fetch(url string, countries []string, categories []string) (map[string]int, error) {
+	apiKey := os.Getenv("API_KEY")
+	categoryDict := make(map[string]int) //category->#articles
+
+	// iterate over each continent and category
+	for _, category := range categories {
+		url = getUrl(url, countries, category, apiKey)
+		// get data from news api
+		res, err := http.Get(url)
+		if err != nil {
+			return nil, err
+		}
+		// read data
+		resp, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, err
+		}
+		// parse response
+		var responseObject response
+		json.Unmarshal(resp, &responseObject)
+		categoryDict[category] = responseObject.TotalResults
+	}
+	return categoryDict, nil
 }
 
-func Fetch() (map[string]map[string]int, error) {
-	apiKey := os.Getenv("API_KEY")
-	continentsDict := make(map[string]map[string]int) //continent->category->#articles
-
+func FetchAllData() map[string]map[string]int {
 	var (
-		c          config
-		url        string
-		continent  string
-		countries  []string
+		c          Config
 		categories []string
+		countries  []string
+		continent  string
 	)
-	c.getConf()
-	categories = c.Categories
+	c.GetConf()
 
+	// dict to store all data
+	continentsDict := make(map[string]map[string]int)
+	// make struct iterable
+	categories = c.Categories
 	v := reflect.ValueOf(c.Continents)
 	typeOfS := v.Type()
-	// iterate over each continent and category
+
+	// iterate over each continent
 	for i := 0; i < v.NumField(); i++ {
 		countries = v.Field(i).Interface().([]string)
 		continent = typeOfS.Field(i).Name
 		continentsDict[continent] = make(map[string]int)
-
-		for _, category := range categories {
-			url = getUrl(c.Url, countries, category, apiKey)
-			// get data from news api
-			res, err := http.Get(url)
-			if err != nil {
-				return nil, err
-			}
-			// read data
-			resp, err := io.ReadAll(res.Body)
-			if err != nil {
-				return nil, err
-			}
-			// parse response
-			var responseObject response
-			json.Unmarshal(resp, &responseObject)
-			continentsDict[continent][category] = responseObject.TotalResults
+		// get data for each continent
+		dict, err := Fetch(c.Url, countries, categories)
+		if err == nil {
+			continentsDict[continent] = dict
+		} else {
+			fmt.Printf("Failed to fetch %s\n", continent)
 		}
 	}
-	return continentsDict, nil
+	return continentsDict
 }
 
 func getUrl(url string, countries []string, category string, apiKey string) string {
@@ -95,25 +95,4 @@ func getUrl(url string, countries []string, category string, apiKey string) stri
 		url = fmt.Sprintf("%s&country=%s", url, strings.Join(countries, ","))
 	}
 	return url
-}
-
-func (c *config) getConf() *config {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-
-	path, _ := os.Getwd()
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./configs")
-	viper.AddConfigPath("../configs")
-	viper.AddConfigPath(fmt.Sprintf("%s/configs", path))
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalln("Failed to load config")
-	}
-
-	err := viper.Unmarshal(c)
-	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
-	}
-	return c
 }

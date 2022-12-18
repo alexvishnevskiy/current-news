@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/alexvishnevskiy/current-news/backend/api"
 	"github.com/gin-gonic/gin"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
+	"log"
 	"net/http"
 )
 
@@ -74,12 +76,30 @@ func setupRouter() *gin.Engine {
 
 func main() {
 	//r := setupRouter()
-
-	resp, err := api.Fetch()
+	db := api.RedisDB{Ctx: context.TODO()}
+	err := db.Connect("localhost:6379")
 	if err != nil {
-		panic(err)
+		log.Fatal("Can't connect to the server")
 	}
-	fmt.Println(resp)
+
+	db.Add("Africa", 10, "business")
+	db.Add("Africa", 5, "sports")
+	db.Add("Africa", 7, "business")
+	db.Add("Africa", 6, "sports")
+
+	res, err := db.Exists("Africa")
+	if err == nil {
+		fmt.Println(res)
+	}
+	res, err = db.Exists("America")
+	if err == nil {
+		fmt.Println(res)
+	}
+
+	top, err := db.GetTop("Africa")
+	if err == nil {
+		fmt.Println(top)
+	}
 
 	//a := api.GetCountryData(resp)
 	//fmt.Println(a)
