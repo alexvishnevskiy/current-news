@@ -13,6 +13,9 @@ import (
 )
 
 func main() {
+	// setup router
+	r := gin.Default()
+
 	// setup database
 	var db = api.RedisDB{Ctx: context.TODO()}
 	db.Connect("localhost:6379")
@@ -21,13 +24,17 @@ func main() {
 	var conf api.ConfigAPI
 	conf.GetConf()
 	continents := reflect.ValueOf(conf.GetContinents()).MapKeys()
+	continentsNames := make([]string, len(continents))
+	for i := 0; i < len(continents); i++ {
+		continentsNames[i] = continents[i].String()
+	}
 
 	// run background job to update table
 	s := gocron.NewScheduler(time.UTC)
-	job, _ := s.Every(4).Hour().Tag("Update").Do(api.UpdateTable, &db, conf)
+	job, _ := s.Every(4).Hour().Do(api.UpdateTable, &db, &conf)
 	s.StartAsync()
 
-	// if it is a first time, we should update table first
+	//if it is a first time, we should update table first
 	if exists, _ := db.SetExists(continents[0].String()); exists == false {
 		for {
 			if job.IsRunning() == false {
@@ -36,24 +43,18 @@ func main() {
 		}
 	}
 
-	// setup router
-	r := gin.Default()
 	r.GET("/data", func(c *gin.Context) {
 		data := make(map[string][]string)
 		// get data from db
-		for _, continent := range continents {
-			res, err := api.GetData(&db, continent.String())
-			// probably make a redirect to some page or etc...
+		for _, continent := range continentsNames {
+			res, err := api.GetData(&db, continent)
 			if err != nil {
-				log.Fatal("Error")
+				log.Fatal("There is no data")
 			}
-			data[continent.String()] = res
+			data[continent] = res
 		}
 
-		jsonData, err := json.Marshal(data)
-		if err != nil {
-			log.Fatal("Error")
-		}
+		jsonData, _ := json.Marshal(data)
 		c.Data(http.StatusOK, "application/json", jsonData)
 	})
 
