@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"reflect"
 	"strings"
 )
 
@@ -30,13 +28,12 @@ type response struct {
 	} `json:"results"`
 }
 
-func Fetch(url string, countries []string, categories []string) (map[string]int, error) {
-	apiKey := os.Getenv("API_KEY")
+func Fetch(url string, countries []string, categories []string, apiKey string) (map[string]int, error) {
 	categoryDict := make(map[string]int) //category->#articles
 
 	// iterate over each continent and category
 	for _, category := range categories {
-		newUrl := getUrl(url, countries, category, apiKey)
+		newUrl := GetUrl(url, countries, category, apiKey)
 		// get data from news api
 		res, err := http.Get(newUrl)
 		if err != nil {
@@ -55,32 +52,19 @@ func Fetch(url string, countries []string, categories []string) (map[string]int,
 	return categoryDict, nil
 }
 
-func FetchAllData() map[string]map[string]int {
-	var (
-		c          Config
-		categories []string
-		countries  []string
-		continent  string
-	)
-	err := c.GetConf()
-	if err != nil {
-		fmt.Errorf("Failed to load config\n")
-	}
-
+func FetchAllData(c Config) map[string]map[string]int {
 	// dict to store all data
 	continentsDict := make(map[string]map[string]int)
-	// make struct iterable
-	categories = c.Categories
-	v := reflect.ValueOf(c.Continents)
-	typeOfS := v.Type()
+	categories := c.GetCategories()
+	continents := c.GetContinents()
+	url := c.GetUrl()
+	apiKey := c.GetApiKey()
 
 	// iterate over each continent
-	for i := 0; i < v.NumField(); i++ {
-		countries = v.Field(i).Interface().([]string)
-		continent = typeOfS.Field(i).Name
+	for continent, countries := range continents {
 		continentsDict[continent] = make(map[string]int)
 		// get data for each continent
-		dict, err := Fetch(c.Url, countries, categories)
+		dict, err := Fetch(url, countries, categories, apiKey)
 		if err == nil {
 			continentsDict[continent] = dict
 		} else {
@@ -90,7 +74,7 @@ func FetchAllData() map[string]map[string]int {
 	return continentsDict
 }
 
-func getUrl(url string, countries []string, category string, apiKey string) string {
+func GetUrl(url string, countries []string, category string, apiKey string) string {
 	url = fmt.Sprintf("%s?apikey=%s", url, apiKey)
 	url = fmt.Sprintf("%s&category=%s", url, category)
 

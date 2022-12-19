@@ -1,111 +1,62 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"encoding/json"
 	"github.com/alexvishnevskiy/current-news/backend/api"
+	"github.com/gin-gonic/gin"
+	"github.com/go-co-op/gocron"
+	"log"
+	"net/http"
+	"reflect"
+	"time"
 )
 
-//func setupRouter() *gin.Engine {
-//	// Disable Console Color
-//	// gin.DisableConsoleColor()
-//	r := gin.Default()
-//
-//	p := ginprometheus.NewPrometheus("gin")
-//	p.Use(r)
-//
-//	// Ping test
-//	r.GET("/ping", func(c *gin.Context) {
-//		c.String(http.StatusOK, "pong")
-//	})
-//
-//	// Get user value
-//	r.GET("/user/:name", func(c *gin.Context) {
-//		user := c.Params.ByName("name")
-//		value, ok := db[user]
-//		if ok {
-//			c.JSON(http.StatusOK, gin.H{"user": user, "value": value})
-//		} else {
-//			c.JSON(http.StatusOK, gin.H{"user": user, "status": "no value"})
-//		}
-//	})
-//
-//	// Authorized group (uses gin.BasicAuth() middleware)
-//	// Same than:
-//	// authorized := r.Group("/")
-//	// authorized.Use(gin.BasicAuth(gin.Credentials{
-//	//	  "foo":  "bar",
-//	//	  "manu": "123",
-//	//}))
-//	authorized := r.Group("/", gin.BasicAuth(gin.Accounts{
-//		"foo":  "bar", // user:foo password:bar
-//		"manu": "123", // user:manu password:123
-//	}))
-//
-//	/* example curl for /admin with basicauth header
-//	   Zm9vOmJhcg== is base64("foo:bar")
-//
-//		curl -X POST \
-//	  	http://localhost:8080/admin \
-//	  	-H 'authorization: Basic Zm9vOmJhcg==' \
-//	  	-H 'content-type: application/json' \
-//	  	-d '{"value":"bar"}'
-//	*/
-//	authorized.POST("admin", func(c *gin.Context) {
-//		user := c.MustGet(gin.AuthUserKey).(string)
-//
-//		// Parse JSON
-//		var json struct {
-//			Value string `json:"value" binding:"required"`
-//		}
-//
-//		if c.Bind(&json) == nil {
-//			db[user] = json.Value
-//			c.JSON(http.StatusOK, gin.H{"status": "ok"})
-//		}
-//	})
-//
-//	return r
-//}
-
 func main() {
-	//r := setupRouter()
-	//db := api.RedisDB{Ctx: context.TODO()}
-	//err := db.Connect("localhost:6379")
-	//if err != nil {
-	//	log.Fatal("Can't connect to the server")
-	//}
-	//
-	//db.Add("Africa", 10, "business")
-	//db.Add("Africa", 5, "sports")
-	//db.Add("Africa", 7, "business")
-	//db.Add("Africa", 6, "sports")
-	//
-	//res, err := db.SetExists("Africa")
-	//if err == nil {
-	//	fmt.Println(res)
-	//}
-	//res, err = db.SetExists("America")
-	//if err == nil {
-	//	fmt.Println(res)
-	//}
-	//
-	//top, err := db.GetTop("Africa")
-	//if err == nil {
-	//	fmt.Println(top)
-	//}
-	//
-	//exist, err := db.MemberExists("Africa", "huita")
-	//fmt.Println(exist)
+	// setup database
+	var db = api.RedisDB{Ctx: context.TODO()}
+	db.Connect("localhost:6379")
 
-	var c api.Config
-	_ = c.GetConf()
-	res, _ := api.Fetch(c.Url, c.Continents.Europe, c.Categories)
-	fmt.Println(res)
+	// setup config
+	var conf api.ConfigAPI
+	conf.GetConf()
+	continents := reflect.ValueOf(conf.GetContinents()).MapKeys()
 
-	//a := api.GetCountryData(resp)
-	//fmt.Println(a)
+	// run background job to update table
+	s := gocron.NewScheduler(time.UTC)
+	job, _ := s.Every(4).Hour().Tag("Update").Do(api.UpdateTable, &db, conf)
+	s.StartAsync()
 
-	//fmt.Println(resp)
+	// if it is a first time, we should update table first
+	if exists, _ := db.SetExists(continents[0].String()); exists == false {
+		for {
+			if job.IsRunning() == false {
+				break
+			}
+		}
+	}
+
+	// setup router
+	r := gin.Default()
+	r.GET("/data", func(c *gin.Context) {
+		data := make(map[string][]string)
+		// get data from db
+		for _, continent := range continents {
+			res, err := api.GetData(&db, continent.String())
+			// probably make a redirect to some page or etc...
+			if err != nil {
+				log.Fatal("Error")
+			}
+			data[continent.String()] = res
+		}
+
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			log.Fatal("Error")
+		}
+		c.Data(http.StatusOK, "application/json", jsonData)
+	})
+
 	// Listen and Server in 0.0.0.0:8080
-	//r.Run(":8888")
+	r.Run(":8888")
 }

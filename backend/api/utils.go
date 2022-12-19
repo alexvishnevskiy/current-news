@@ -2,8 +2,8 @@ package api
 
 import "fmt"
 
-func UpdateTable(db *RedisDB) error {
-	statsDict := FetchAllData()
+func UpdateTable(db *RedisDB, c Config) error {
+	statsDict := FetchAllData(c)
 	if len(statsDict) != 0 {
 		for continent := range statsDict {
 			for category := range statsDict[continent] {

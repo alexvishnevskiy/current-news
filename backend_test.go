@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	db = api.RedisDB{Ctx: context.TODO()}
-	c  api.Config
+	db         = api.RedisDB{Ctx: context.TODO()}
+	configTest api.TestConfig
+	configApi  api.ConfigAPI
 )
 
 func TestDB(t *testing.T) {
@@ -57,44 +58,63 @@ func TestDB(t *testing.T) {
 }
 
 func TestConfig(t *testing.T) {
-	err := c.GetConf()
-	assert.Nil(t, err, nil, "Config is not loaded")
-	assert.Greater(t, len(c.Continents.Africa), 0, "Config is not loaded correctly")
-	assert.Greater(t, len(c.Url), 0, "Config is not loaded correctly")
+	var (
+		err        error
+		url        string
+		continents []string
+	)
+	err = configTest.GetConf()
+	url = configTest.GetUrl()
+	continents = configTest.GetContinents()["Europe"]
+
+	assert.Nil(t, err, nil, "Test config is not loaded")
+	assert.Greater(t, len(continents), 0, "Test config is not loaded correctly")
+	assert.Greater(t, len(url), 0, "Test config is not loaded correctly")
+
+	err = configApi.GetConf()
+	url = configApi.GetUrl()
+	continents = configApi.GetContinents()["Europe"]
+	assert.Nil(t, err, nil, "Api config is not loaded")
+	assert.Greater(t, len(continents), 0, "Config is not loaded correctly")
+	assert.Greater(t, len(url), 0, "Config is not loaded correctly")
 }
 
 func TestFetch(t *testing.T) {
-	_ = c.GetConf()
-	res, err := api.Fetch(c.Url, c.Continents.Europe, c.Categories)
-	assert.Greater(t, res[c.Categories[0]], 0, "Failed to fetch data")
+	_ = configTest.GetConf()
+	url := configTest.GetUrl()
+	countries := configTest.GetContinents()["Europe"]
+	categories := configTest.GetCategories()
+	apiKey := configTest.GetApiKey()
+
+	res, err := api.Fetch(url, countries, categories, apiKey)
+	assert.Greater(t, res[categories[0]], 0, "Failed to fetch data")
 	assert.Nil(t, err, "Failed to fetch data")
 }
 
 func TestDBApi(t *testing.T) {
 	db.Connect("localhost:6379")
-	_ = c.GetConf()
-	err := api.UpdateTable(&db)
-	assert.Nil(t, err, "Failed to update table with api")
-
-	v := reflect.ValueOf(c.Continents)
-	typeOfS := v.Type()
 
 	// test table update
-	exists, err := db.SetExists(typeOfS.Field(0).Name)
+	_ = configTest.GetConf()
+	err := api.UpdateTable(&db, &configTest)
+	assert.Nil(t, err, "Failed to update table with api")
+
+	continents := reflect.ValueOf(configTest.GetContinents()).MapKeys()
+	exists, err := db.SetExists(continents[0].String())
 	assert.Nil(t, err, "Api didn't update table")
 	assert.Equal(t, exists, true, "Api didn't update table")
-	exists, err = db.SetExists(typeOfS.Field(1).Name)
+
+	exists, err = db.SetExists(continents[1].String())
 	assert.Nil(t, err, "Api didn't update table")
 	assert.Equal(t, exists, true, "Api didn't update table")
 
 	// test fetching data from table
-	res, err := api.GetData(&db, typeOfS.Field(0).Name)
+	res, err := api.GetData(&db, continents[0].String())
 	assert.Nil(t, err, "Failed to fetch data")
 	assert.Greater(t, len(res), 0, "Failed to fetch data")
 
 	// clean data
-	for i := 0; i < v.NumField(); i++ {
-		continent := typeOfS.Field(i).Name
-		db.RemoveSet(continent)
+	for _, continent := range continents {
+		db.RemoveSet(continent.String())
 	}
 }

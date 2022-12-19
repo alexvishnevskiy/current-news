@@ -1,5 +1,7 @@
 url:
   "https://newsdata.io/api/1/news"
+apiKey:
+  "pub_14662fcf3c66110105b27dda083ed10833079"
 continent:
   NorthAmerica:
     [ca, us, mx, do, cu]
