@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"github.com/alexvishnevskiy/current-news/backend/api"
+	"github.com/alexvishnevskiy/current-news/api"
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
 	"log"

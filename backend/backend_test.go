@@ -1,8 +1,8 @@
-package backend_test
+package main_test
 
 import (
 	"context"
-	"github.com/alexvishnevskiy/current-news/backend/api"
+	"github.com/alexvishnevskiy/current-news/api"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
