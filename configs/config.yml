@@ -8,10 +8,12 @@ continent:
   Europe:
     [de, fr, it, gb, es]
   Asia:
-    [ru, cn, in, au, kp]
+    [ru, cn, in, kp, kr]
   Africa:
     [za, eg, dz, cm, gh]
   SouthAmerica:
     [ar, br, cl, co, ec]
+  Oceania:
+    [au, nz]
 category:
   [business, politics, sports, science, entertainment] #[] to use all categories

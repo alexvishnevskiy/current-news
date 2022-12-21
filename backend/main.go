@@ -49,13 +49,13 @@ func main() {
 
 	// run background job to update table
 	s := gocron.NewScheduler(time.UTC)
-	job, _ := s.Every(4).Hour().Do(api.UpdateTable, &db, &conf)
+	job, _ := s.Every(8).Hour().Do(api.UpdateTable, &db, &conf)
 	s.StartAsync()
 
 	//if it is a first time, we should update table first
-	if exists, _ := db.SetExists(continents[0].String()); exists == false {
+	if exists, _ := db.SetExists(continents[0].String()); !exists {
 		for {
-			if job.IsRunning() == false {
+			if !job.IsRunning() {
 				break
 			}
 		}

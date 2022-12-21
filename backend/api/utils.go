@@ -13,6 +13,7 @@ func UpdateTable(db *RedisDB, c Config) error {
 				}
 			}
 		}
+		fmt.Println("Data is updated")
 	} else {
 		fmt.Println("Fetched data is empty")
 	}

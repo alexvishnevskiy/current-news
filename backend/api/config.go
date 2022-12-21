@@ -2,9 +2,10 @@ package api
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"os"
 	"reflect"
+
+	"github.com/spf13/viper"
 )
 
 type Config interface {
@@ -24,6 +25,7 @@ type ConfigAPI struct {
 		Asia         []string `mapstructure:"Asia"`
 		Africa       []string `mapstructure:"Africa"`
 		SouthAmerica []string `mapstructure:"SouthAmerica"`
+		Oceania      []string `mapstructure:"Oceania"`
 	} `mapstructure:"continent"`
 	Categories []string `mapstructure:"category"`
 }
