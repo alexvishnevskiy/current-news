@@ -36,7 +36,10 @@ func main() {
 
 	// setup database
 	var db = api.RedisDB{Ctx: context.TODO()}
-	db.Connect("localhost:6379")
+	err := db.Connect("redis:6379")
+	if err != nil {
+		panic(err)
+	}
 
 	// setup config
 	var conf api.ConfigAPI
@@ -67,7 +70,7 @@ func main() {
 		for _, continent := range continentsNames {
 			res, err := api.GetData(&db, continent)
 			if err != nil {
-				log.Fatal("There is no data")
+				log.Fatal("There is no data\n", err)
 			}
 			data[continent] = res
 		}

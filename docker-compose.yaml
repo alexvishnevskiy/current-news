@@ -1,0 +1,39 @@
+version: "3"
+services:
+  backend:
+    restart: always
+    build: ./backend
+    networks:
+      - sashnevskiy
+    ports:
+      - "8888:8888"
+
+  frontend:
+    restart: always
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile.prod
+      # dockerfile: Dockerfile
+
+    ports:
+      - "80:80"
+    
+    # ports:
+    #   - "3000:3000"
+
+    networks:
+      - sashnevskiy
+
+  redis:
+    image: "redis:7.0.7-bullseye"
+    restart: always
+    
+    networks:
+      - sashnevskiy
+
+    expose:
+      - 6379
+
+networks:
+  sashnevskiy:
+    driver: bridge
