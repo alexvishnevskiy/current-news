@@ -1,4 +1,4 @@
-FROM node:16.19-bullseye as build
+FROM node:16.19-bullseye-slim as build 
 # set working directory
 WORKDIR /app
 # add `/app/node_modules/.bin` to $PATH

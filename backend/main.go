@@ -6,12 +6,15 @@ import (
 	"log"
 	"net/http"
 	"reflect"
-	"time"
 
 	"github.com/alexvishnevskiy/current-news/api"
 	"github.com/gin-gonic/gin"
-	"github.com/go-co-op/gocron"
 )
+
+type DataOutput struct {
+	Total      int
+	Categories []string
+}
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -36,7 +39,7 @@ func main() {
 
 	// setup database
 	var db = api.RedisDB{Ctx: context.TODO()}
-	err := db.Connect("redis:6379")
+	err := db.Connect("localhost:6379")
 	if err != nil {
 		panic(err)
 	}
@@ -51,28 +54,35 @@ func main() {
 	}
 
 	// run background job to update table
-	s := gocron.NewScheduler(time.UTC)
-	job, _ := s.Every(8).Hour().Do(api.UpdateTable, &db, &conf)
-	s.StartAsync()
+	// s := gocron.NewScheduler(time.UTC)
+	// job, _ := s.Every(8).Hour().Do(api.UpdateTable, &db, &conf)
+	// s.StartAsync()
 
 	//if it is a first time, we should update table first
-	if exists, _ := db.SetExists(continents[0].String()); !exists {
-		for {
-			if !job.IsRunning() {
-				break
-			}
-		}
-	}
+	// if exists, _ := db.SetExists(continents[0].String()); !exists {
+	// 	for {
+	// 		if !job.IsRunning() {
+	// 			break
+	// 		}
+	// 	}
+	// }
 
 	r.GET("/data", func(c *gin.Context) {
-		data := make(map[string][]string)
+		data := make(map[string]DataOutput)
 		// get data from db
 		for _, continent := range continentsNames {
-			res, err := api.GetData(&db, continent)
+			res, err := api.GetCategoriesTop(&db, continent)
 			if err != nil {
 				log.Fatal("There is no data\n", err)
 			}
-			data[continent] = res
+
+			total := 0
+			categories := make([]string, 0)
+			for _, cand := range res {
+				categories = append(categories, cand.Member)
+				total += cand.Score
+			}
+			data[continent] = DataOutput{Total: total, Categories: categories}
 		}
 
 		jsonData, _ := json.Marshal(data)
@@ -80,5 +90,5 @@ func main() {
 	})
 
 	// Listen and Server in 0.0.0.0:8080
-	r.Run(":8888")
+	r.Run(":8080")
 }

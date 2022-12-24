@@ -2,12 +2,19 @@ package api
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/go-redis/redis/v9"
 )
 
 type RedisDB struct {
 	client *redis.Client
 	Ctx    context.Context
+}
+
+type Member struct {
+	Member string
+	Score  int
 }
 
 func (db *RedisDB) Connect(addr string) error {
@@ -61,8 +68,17 @@ func (db *RedisDB) RemoveSet(continent string) error {
 	return err
 }
 
-func (db *RedisDB) GetTop(continent string) ([]string, error) {
-	result, err := db.client.ZRevRangeByScore(
-		db.Ctx, continent, &redis.ZRangeBy{Max: "+inf", Min: "0"}).Result()
-	return result, err
+func (db *RedisDB) GetTop(continent string) ([]Member, error) {
+	var inf int64 = 10000000
+	leaderboard := make([]Member, 0)
+	result, err := db.client.ZRangeWithScores(db.Ctx, continent, 0, inf).Result()
+
+	if err != nil {
+		return leaderboard, err
+	}
+
+	for _, record := range result {
+		leaderboard = append(leaderboard, Member{Member: fmt.Sprintf("%v", record.Member), Score: int(record.Score)})
+	}
+	return leaderboard, nil
 }

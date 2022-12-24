@@ -1,4 +1,4 @@
-FROM golang:1.19.4-bullseye
+FROM golang:1.20rc1-alpine3.17
 # working directory
 WORKDIR /app
 # copy project and download modules

@@ -2,10 +2,11 @@ package main_test
 
 import (
 	"context"
-	"github.com/alexvishnevskiy/current-news/api"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/alexvishnevskiy/current-news/api"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -109,7 +110,7 @@ func TestDBApi(t *testing.T) {
 	assert.Equal(t, exists, true, "Api didn't update table")
 
 	// test fetching data from table
-	res, err := api.GetData(&db, continents[0].String())
+	res, err := api.GetCategoriesTop(&db, continents[0].String())
 	assert.Nil(t, err, "Failed to fetch data")
 	assert.Greater(t, len(res), 0, "Failed to fetch data")
 

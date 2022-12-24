@@ -20,15 +20,16 @@ func UpdateTable(db *RedisDB, c Config) error {
 	return nil
 }
 
-func GetData(db *RedisDB, continent string) ([]string, error) {
+func GetCategoriesTop(db *RedisDB, continent string) ([]Member, error) {
+	var topCategories []Member
 	exists, err := db.SetExists(continent)
 	if !exists || err != nil {
-		return []string{}, err
+		return topCategories, err
 	}
 
-	topk, err := db.GetTop(continent)
+	topCategories, err = db.GetTop(continent)
 	if err != nil {
-		return []string{}, err
+		return topCategories, err
 	}
-	return topk, err
+	return topCategories, nil
 }

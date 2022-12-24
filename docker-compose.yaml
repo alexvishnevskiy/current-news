@@ -2,7 +2,7 @@ version: "3"
 services:
   backend:
     restart: always
-    build: ./backend
+    image: "sashnevskiy/current-news:backend"
     networks:
       - sashnevskiy
     ports:
@@ -10,10 +10,7 @@ services:
 
   frontend:
     restart: always
-    build:
-      context: ./frontend/
-      dockerfile: Dockerfile.prod
-      # dockerfile: Dockerfile
+    image: "sashnevskiy/current-news:frontend"
 
     ports:
       - "80:80"
