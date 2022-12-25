@@ -6,6 +6,9 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"time"
+
+	"github.com/go-co-op/gocron"
 
 	"github.com/alexvishnevskiy/current-news/api"
 	"github.com/gin-gonic/gin"
@@ -40,6 +43,7 @@ func main() {
 	// setup database
 	var db = api.RedisDB{Ctx: context.TODO()}
 	err := db.Connect("localhost:6379")
+	// err := db.Connect("redis:6379")
 	if err != nil {
 		panic(err)
 	}
@@ -54,18 +58,18 @@ func main() {
 	}
 
 	// run background job to update table
-	// s := gocron.NewScheduler(time.UTC)
-	// job, _ := s.Every(8).Hour().Do(api.UpdateTable, &db, &conf)
-	// s.StartAsync()
+	s := gocron.NewScheduler(time.UTC)
+	job, _ := s.Every(8).Hour().Do(api.UpdateTable, &db, &conf)
+	s.StartAsync()
 
-	//if it is a first time, we should update table first
-	// if exists, _ := db.SetExists(continents[0].String()); !exists {
-	// 	for {
-	// 		if !job.IsRunning() {
-	// 			break
-	// 		}
-	// 	}
-	// }
+	// if it is a first time, we should update table first
+	if exists, _ := db.SetExists(continents[0].String()); !exists {
+		for {
+			if !job.IsRunning() {
+				break
+			}
+		}
+	}
 
 	r.GET("/data", func(c *gin.Context) {
 		data := make(map[string]DataOutput)
@@ -91,4 +95,5 @@ func main() {
 
 	// Listen and Server in 0.0.0.0:8080
 	r.Run(":8080")
+	// r.Run(":80")
 }

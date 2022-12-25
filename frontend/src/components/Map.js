@@ -48,6 +48,8 @@ function GetImage(continent) {
       return OceaniaImage
     case 'Europe':
       return EuropeImage
+    default:
+      break;
   }
 }
 
@@ -58,8 +60,8 @@ export default function Map() {
   });
 
   useEffect(() => {
-    axios.get('http://localhost:8080/data', {mode: 'no-cors'})
-    // axios.get('http://4.227.248.158/data', {mode: 'no-cors'})
+    // axios.get('http://localhost:8080/data', {mode: 'no-cors'})
+    axios.get('http://4.227.248.158/data', {mode: 'no-cors'})
     .then(res => res.data)
     .then(res => {
         updataData({
@@ -84,7 +86,7 @@ export default function Map() {
   });
 
   return (
-    <Card sx={{ width: '60%'}}>
+    <Card>
       <Grid container spacing={1} direction="row" alignItems="center" justify="center">
         <Grid item md={7}>
           <CardContent>
@@ -104,7 +106,7 @@ export default function Map() {
           <CardContent>
             <Box pl={3}>
               <Typography padding-left={10} align="left" variant="h7" component="div">
-                <b>Percentage of articles</b>
+                <b>Leaderboard</b>
               </Typography>
             </Box>
             <List
