@@ -60,8 +60,8 @@ export default function Map() {
   });
 
   useEffect(() => {
-    // axios.get('http://localhost:8080/data', {mode: 'no-cors'})
-    axios.get('http://4.227.248.158/data', {mode: 'no-cors'})
+    axios.get('http://localhost:8080/categories', {mode: 'no-cors'})
+    // axios.get('http://4.227.248.158/categories', {mode: 'no-cors'})
     .then(res => res.data)
     .then(res => {
         updataData({
@@ -129,7 +129,7 @@ export default function Map() {
                         <Stack direction="row" spacing={2}>
                           <ListItemText primary={`${key}`}/>
                           <Box mt={2}>
-                            <ListItemText primary={`${Math.round(value.Total/total*100)}%`}/>
+                            <ListItemText primary={`${total == 0 ? 0 : Math.round(value.Total/total*100)}%`}/>
                           </Box>
                         </Stack>
                         <LinearProgress sx={{backgroundColor: '#bfbfbf', '& .MuiLinearProgress-bar': {backgroundColor: '#cf473bf5'}}}

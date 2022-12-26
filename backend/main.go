@@ -8,10 +8,11 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/go-co-op/gocron"
-
 	"github.com/alexvishnevskiy/current-news/api"
+	cat "github.com/alexvishnevskiy/current-news/api/categories"
+	head "github.com/alexvishnevskiy/current-news/api/headlines"
 	"github.com/gin-gonic/gin"
+	"github.com/go-co-op/gocron"
 )
 
 type DataOutput struct {
@@ -48,36 +49,41 @@ func main() {
 		panic(err)
 	}
 
-	// setup config
-	var conf api.ConfigAPI
+	// setup config for categories
+	var conf cat.ConfigAPI
 	conf.GetConf()
 	continents := reflect.ValueOf(conf.GetContinents()).MapKeys()
 	continentsNames := make([]string, len(continents))
 	for i := 0; i < len(continents); i++ {
 		continentsNames[i] = continents[i].String()
 	}
+	// setup config for headlines
+	var confHead head.ConfigAPI
+	confHead.GetConf()
 
-	// run background job to update table
+	// run background job to update categories
 	s := gocron.NewScheduler(time.UTC)
-	job, _ := s.Every(8).Hour().Do(api.UpdateTable, &db, &conf)
+	jobCat, _ := s.Every(8).Hour().Do(api.UpdateSortedSet, &db, &conf)
+	// run background job to update headlines
+	jobHead, _ := s.Every(2).Hour().Do(api.UpdateHeadlines, &db, confHead)
 	s.StartAsync()
 
-	// if it is a first time, we should update table first
+	// if it is a first time, we should update tables first
 	if exists, _ := db.SetExists(continents[0].String()); !exists {
 		for {
-			if !job.IsRunning() {
+			if !jobCat.IsRunning() && !jobHead.IsRunning() {
 				break
 			}
 		}
 	}
 
-	r.GET("/data", func(c *gin.Context) {
+	r.GET("/categories", func(c *gin.Context) {
 		data := make(map[string]DataOutput)
 		// get data from db
 		for _, continent := range continentsNames {
 			res, err := api.GetCategoriesTop(&db, continent)
 			if err != nil {
-				log.Fatal("There is no data\n", err)
+				log.Fatal("There is no data for categories\n", err)
 			}
 
 			total := 0
@@ -90,6 +96,28 @@ func main() {
 		}
 
 		jsonData, _ := json.Marshal(data)
+		c.Data(http.StatusOK, "application/json", jsonData)
+	})
+
+	r.GET("/headlines", func(c *gin.Context) {
+		headlines, err := api.GetHeadlines(&db, confHead.SetKey)
+		if err != nil {
+			log.Fatal("There is no data for headlines\n", err)
+		}
+
+		jsonData, _ := json.Marshal(headlines)
+		c.Data(http.StatusOK, "application/json", jsonData)
+	})
+
+	r.GET("/headlines/:q", func(c *gin.Context) {
+		question := c.Param("q")
+		articles, err := head.Fetch(confHead.Url, confHead.ApiKey, []string{}, confHead.PageSize, question)
+		// when there is no apis calls left display smth
+		if err != nil {
+			log.Fatal("Failed to fetched articles for specific question\n", err)
+		}
+
+		jsonData, _ := json.Marshal(articles)
 		c.Data(http.StatusOK, "application/json", jsonData)
 	})
 

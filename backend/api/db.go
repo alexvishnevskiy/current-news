@@ -2,8 +2,10 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
+	head "github.com/alexvishnevskiy/current-news/api/headlines"
 	"github.com/go-redis/redis/v9"
 )
 
@@ -63,8 +65,8 @@ func (db *RedisDB) RemoveMember(continent string, category string) error {
 	return err
 }
 
-func (db *RedisDB) RemoveSet(continent string) error {
-	_, err := db.client.Del(db.Ctx, continent).Result()
+func (db *RedisDB) RemoveSet(key string) error {
+	_, err := db.client.Del(db.Ctx, key).Result()
 	return err
 }
 
@@ -77,8 +79,43 @@ func (db *RedisDB) GetTop(continent string) ([]Member, error) {
 		return leaderboard, err
 	}
 
-	for _, record := range result {
-		leaderboard = append(leaderboard, Member{Member: fmt.Sprintf("%v", record.Member), Score: int(record.Score)})
+	for i := len(result) - 1; i >= 0; i-- {
+		leaderboard = append(leaderboard, Member{Member: fmt.Sprintf("%v", result[i].Member), Score: int(result[i].Score)})
 	}
 	return leaderboard, nil
+}
+
+func (db *RedisDB) AddSet(key string, value head.Article) error {
+	bytes, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	_, err = db.client.SAdd(db.Ctx, key, bytes).Result()
+	return err
+}
+
+func (db *RedisDB) GetSet(key string) ([]head.Article, error) {
+	res, err := db.client.SMembers(db.Ctx, key).Result()
+	if err != nil {
+		return []head.Article{}, err
+	}
+
+	// read and unmarshall members of the set
+	setMembers := make([]head.Article, len(res))
+	for i, member := range res {
+		var v head.Article
+		if err := json.Unmarshal([]byte(member), &v); err != nil {
+			return []head.Article{}, err
+		}
+		setMembers[i] = v
+	}
+	return setMembers, nil
+}
+
+func (db *RedisDB) Size(key string) (int64, error) {
+	size, err := db.client.SCard(db.Ctx, key).Result()
+	if err != nil {
+		return 0, err
+	}
+	return size, nil
 }

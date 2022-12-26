@@ -6,13 +6,16 @@ import (
 	"testing"
 
 	"github.com/alexvishnevskiy/current-news/api"
+	cat "github.com/alexvishnevskiy/current-news/api/categories"
+	head "github.com/alexvishnevskiy/current-news/api/headlines"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
 	db         = api.RedisDB{Ctx: context.TODO()}
-	configTest api.TestConfig
-	configApi  api.ConfigAPI
+	configTest cat.TestConfig
+	configApi  cat.ConfigAPI
+	configHead head.ConfigAPI
 )
 
 func TestDB(t *testing.T) {
@@ -45,6 +48,14 @@ func TestDB(t *testing.T) {
 	_ = db.RemoveSet("Africa")
 	_ = db.RemoveSet("America")
 
+	// test for normal set
+	db.AddSet("articles", head.Article{Title: "article1", URL: "url1"})
+	db.AddSet("articles", head.Article{Title: "article2", URL: "url2"})
+	db.AddSet("articles", head.Article{Title: "article3", URL: "url3"})
+	size, _ := db.Size("articles")
+	assert.Equal(t, size, int64(3), "The size of the articles set should be 3")
+	_ = db.RemoveSet("articles")
+
 	// test for the topk
 	_ = db.Add("Africa", 0, "business")
 	_ = db.Add("Africa", 5, "politics")
@@ -52,7 +63,12 @@ func TestDB(t *testing.T) {
 	_ = db.Add("Africa", 4, "education")
 	topk, _ := db.GetTop("Africa")
 	assert.Equal(
-		t, topk, []string{"sports", "politics", "education", "business"}, "Topk is not right")
+		t, topk, []api.Member{
+			{Member: "sports", Score: 9},
+			{Member: "politics", Score: 5},
+			{Member: "education", Score: 4},
+			{Member: "business", Score: 0},
+		}, "Topk is not right")
 
 	// clear everything
 	_ = db.RemoveSet("Africa")
@@ -78,18 +94,37 @@ func TestConfig(t *testing.T) {
 	assert.Nil(t, err, nil, "Api config is not loaded")
 	assert.Greater(t, len(continents), 0, "Config is not loaded correctly")
 	assert.Greater(t, len(url), 0, "Config is not loaded correctly")
+
+	err = configHead.GetConf()
+	url = configHead.Url
+	apiKey := configHead.ApiKey
+	sources := configHead.Sources
+	assert.Greater(t, len(url), 0, "Config for headlines is not loaded correctly")
+	assert.Greater(t, len(sources), 0, "Config for headlines is not loaded correctly")
+	assert.Greater(t, len(apiKey), 0, "Config for headlines is not loaded correctly")
 }
 
 func TestFetch(t *testing.T) {
+	// testing categories
 	_ = configTest.GetConf()
 	url := configTest.GetUrl()
 	countries := configTest.GetContinents()["Europe"]
 	categories := configTest.GetCategories()
 	apiKey := configTest.GetApiKey()
 
-	res, err := api.Fetch(url, countries, categories, apiKey)
-	assert.Greater(t, res[categories[0]], 0, "Failed to fetch data")
-	assert.Nil(t, err, "Failed to fetch data")
+	res, err := cat.Fetch(url, countries, categories, apiKey)
+	assert.Greater(t, res[categories[0]], 0, "Failed to fetch data for categories")
+	assert.Nil(t, err, "Failed to fetch data for categories")
+
+	// testings headlines
+	_ = configHead.GetConf()
+	url = configHead.Url
+	apiKey = configHead.ApiKey
+	pageSize := configHead.PageSize
+	sources := configHead.Sources
+	articles, err := head.Fetch(url, apiKey, sources, pageSize)
+	assert.Greater(t, len(articles), 0, "Failed to fetch data for headlines")
+	assert.Nil(t, err, "Failed to fetch data for headlines")
 }
 
 func TestDBApi(t *testing.T) {
@@ -97,7 +132,7 @@ func TestDBApi(t *testing.T) {
 
 	// test table update
 	_ = configTest.GetConf()
-	err := api.UpdateTable(&db, &configTest)
+	err := api.UpdateSortedSet(&db, &configTest)
 	assert.Nil(t, err, "Failed to update table with api")
 
 	continents := reflect.ValueOf(configTest.GetContinents()).MapKeys()
@@ -118,4 +153,13 @@ func TestDBApi(t *testing.T) {
 	for _, continent := range continents {
 		db.RemoveSet(continent.String())
 	}
+
+	// test fetching headlines
+	_ = configHead.GetConf()
+	err = api.UpdateHeadlines(&db, configHead)
+	assert.Nil(t, err, "Failed update headlines")
+	articles, _ := api.GetHeadlines(&db, configHead.SetKey)
+	assert.Greater(t, len(articles), 0, "Failed to get headlines")
+	// clean
+	db.RemoveSet(configHead.SetKey)
 }

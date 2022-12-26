@@ -1,4 +1,4 @@
-package api
+package categories
 
 import (
 	"encoding/json"
@@ -75,8 +75,7 @@ func FetchAllData(c Config) map[string]map[string]int {
 }
 
 func GetUrl(url string, countries []string, category string, apiKey string) string {
-	url = fmt.Sprintf("%s?apikey=%s", url, apiKey)
-	url = fmt.Sprintf("%s&category=%s", url, category)
+	url = fmt.Sprintf("%s?apikey=%s&category=%s", url, apiKey, category)
 
 	if len(countries) != 0 {
 		url = fmt.Sprintf("%s&country=%s", url, strings.Join(countries, ","))

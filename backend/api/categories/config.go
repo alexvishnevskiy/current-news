@@ -1,4 +1,4 @@
-package api
+package categories
 
 import (
 	"fmt"
@@ -41,7 +41,7 @@ type TestConfig struct {
 }
 
 func (c *ConfigAPI) GetConf() error {
-	viper.SetConfigName("config")
+	viper.SetConfigName("config-newsdata")
 	viper.SetConfigType("yaml")
 
 	path, _ := os.Getwd()

@@ -1,0 +1,10 @@
+url:
+  "https://newsapi.org/v2/top-headlines"
+apiKey:
+  "e06ab00f32b44a9f944845a1f3ad01f6"
+sources:
+  [bbc-news,bloomberg,cnn,fox-news,espn,mtv-news,national-geographic,new-scientist,time,the-wall-street-journal]
+setKey: #name of the key to use for set in redis
+  "articles"
+pageSize:
+  100
