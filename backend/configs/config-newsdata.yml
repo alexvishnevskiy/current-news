@@ -17,3 +17,5 @@ continent:
     [au, nz]
 category:
   [business, politics, sports, science, entertainment] #[] to use all categories
+updateFrequency: # in hours
+  12

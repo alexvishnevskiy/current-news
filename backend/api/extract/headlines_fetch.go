@@ -1,4 +1,4 @@
-package headlines
+package extract
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-type response struct {
+type responseHead struct {
 	Status       string `json:"status"`
 	TotalResults int64  `json:"totalResults"`
 	Articles     []struct {
@@ -29,8 +29,9 @@ type Article struct {
 	Source string
 }
 
-func Fetch(url string, apiKey string, sources []string, pageSize int, args ...string) ([]Article, error) {
-	url = GetUrl(url, apiKey, sources, pageSize, args...)
+// fetch headlines
+func FetchHead(url string, apiKey string, sources []string, pageSize int, args ...string) ([]Article, error) {
+	url = GetUrlHead(url, apiKey, sources, pageSize, args...)
 	res, err := http.Get(url)
 	// get data from news api
 	if err != nil {
@@ -42,7 +43,7 @@ func Fetch(url string, apiKey string, sources []string, pageSize int, args ...st
 		return nil, err
 	}
 	// parse response
-	var responseObject response
+	var responseObject responseHead
 	json.Unmarshal(resp, &responseObject)
 	// get articles
 	articles := make([]Article, len(responseObject.Articles))
@@ -52,7 +53,7 @@ func Fetch(url string, apiKey string, sources []string, pageSize int, args ...st
 	return articles, nil
 }
 
-func GetUrl(url string, apiKey string, sources []string, pageSize int, args ...string) string {
+func GetUrlHead(url string, apiKey string, sources []string, pageSize int, args ...string) string {
 	url = fmt.Sprintf("%s?apiKey=%s&pageSize=%d", url, apiKey, pageSize)
 	if len(args) > 0 {
 		url = fmt.Sprintf("%s&q=%s", url, args[0])

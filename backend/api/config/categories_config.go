@@ -1,8 +1,6 @@
-package categories
+package config
 
 import (
-	"fmt"
-	"os"
 	"reflect"
 
 	"github.com/spf13/viper"
@@ -16,7 +14,7 @@ type Config interface {
 	GetCategories() []string
 }
 
-type ConfigAPI struct {
+type ConfigCat struct {
 	Url        string `mapstructure:"url"`
 	ApiKey     string `mapstructure:"apiKey"`
 	Continents struct {
@@ -28,6 +26,7 @@ type ConfigAPI struct {
 		Oceania      []string `mapstructure:"Oceania"`
 	} `mapstructure:"continent"`
 	Categories []string `mapstructure:"category"`
+	Frequency  int      `mapstructure:"updateFrequency"`
 }
 
 type TestConfig struct {
@@ -40,17 +39,8 @@ type TestConfig struct {
 	Categories []string
 }
 
-func (c *ConfigAPI) GetConf() error {
-	viper.SetConfigName("config-newsdata")
-	viper.SetConfigType("yaml")
-
-	path, _ := os.Getwd()
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./configs")
-	viper.AddConfigPath("../configs")
-	viper.AddConfigPath(fmt.Sprintf("%s/configs", path))
-
-	err := viper.ReadInConfig()
+func (c *ConfigCat) GetConf() error {
+	err := readConfig("config-newsdata")
 	if err != nil {
 		return err
 	}
@@ -62,15 +52,15 @@ func (c *ConfigAPI) GetConf() error {
 	return nil
 }
 
-func (c *ConfigAPI) GetUrl() string {
+func (c *ConfigCat) GetUrl() string {
 	return c.Url
 }
 
-func (c *ConfigAPI) GetApiKey() string {
+func (c *ConfigCat) GetApiKey() string {
 	return c.ApiKey
 }
 
-func getContinents[K ConfigAPI | TestConfig](c K) map[string][]string {
+func getContinents[K ConfigCat | TestConfig](c K) map[string][]string {
 	continentDict := make(map[string][]string)
 	v := reflect.ValueOf(c).Field(2)
 	typeOfS := v.Type()
@@ -83,16 +73,20 @@ func getContinents[K ConfigAPI | TestConfig](c K) map[string][]string {
 	return continentDict
 }
 
-func (c *ConfigAPI) GetContinents() map[string][]string {
+func (c *ConfigCat) GetContinents() map[string][]string {
 	return getContinents(*c)
 }
 
-func (c *ConfigAPI) GetCategories() []string {
+func (c *ConfigCat) GetCategories() []string {
 	return c.Categories
 }
 
+func (c *ConfigCat) GetFrequency() int {
+	return c.Frequency
+}
+
 func (c *TestConfig) GetConf() error {
-	var apiConf ConfigAPI
+	var apiConf ConfigCat
 	err := apiConf.GetConf()
 	if err != nil {
 		return err
@@ -102,7 +96,7 @@ func (c *TestConfig) GetConf() error {
 	return nil
 }
 
-func (c *TestConfig) CopyConfig(apiConf *ConfigAPI) {
+func (c *TestConfig) CopyConfig(apiConf *ConfigCat) {
 	c.ApiKey = apiConf.ApiKey
 	c.Url = apiConf.Url
 	c.Continents = struct {

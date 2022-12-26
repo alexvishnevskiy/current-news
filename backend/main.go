@@ -9,48 +9,19 @@ import (
 	"time"
 
 	"github.com/alexvishnevskiy/current-news/api"
-	cat "github.com/alexvishnevskiy/current-news/api/categories"
-	head "github.com/alexvishnevskiy/current-news/api/headlines"
+	"github.com/alexvishnevskiy/current-news/api/config"
+	"github.com/alexvishnevskiy/current-news/api/extract"
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
 )
-
-type DataOutput struct {
-	Total      int
-	Categories []string
-}
-
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
-}
 
 func main() {
 	// setup router
 	r := gin.Default()
 	r.Use(CORSMiddleware())
 
-	// setup database
-	var db = api.RedisDB{Ctx: context.TODO()}
-	err := db.Connect("localhost:6379")
-	// err := db.Connect("redis:6379")
-	if err != nil {
-		panic(err)
-	}
-
 	// setup config for categories
-	var conf cat.ConfigAPI
+	var conf config.ConfigCat
 	conf.GetConf()
 	continents := reflect.ValueOf(conf.GetContinents()).MapKeys()
 	continentsNames := make([]string, len(continents))
@@ -58,14 +29,24 @@ func main() {
 		continentsNames[i] = continents[i].String()
 	}
 	// setup config for headlines
-	var confHead head.ConfigAPI
+	var confHead config.ConfigHead
 	confHead.GetConf()
+	// setup backend config
+	var confBack config.ConfigBackend
+	confBack.GetConf()
+
+	// setup database
+	var db = api.RedisDB{Ctx: context.TODO()}
+	err := db.Connect(confBack.RedisAddr)
+	if err != nil {
+		panic(err)
+	}
 
 	// run background job to update categories
 	s := gocron.NewScheduler(time.UTC)
-	jobCat, _ := s.Every(8).Hour().Do(api.UpdateSortedSet, &db, &conf)
+	jobCat, _ := s.Every(conf.GetFrequency()).Hour().Do(api.UpdateSortedSet, &db, &conf)
 	// run background job to update headlines
-	jobHead, _ := s.Every(2).Hour().Do(api.UpdateHeadlines, &db, confHead)
+	jobHead, _ := s.Every(conf.Frequency).Hour().Do(api.UpdateHeadlines, &db, confHead)
 	s.StartAsync()
 
 	// if it is a first time, we should update tables first
@@ -111,7 +92,7 @@ func main() {
 
 	r.GET("/headlines/:q", func(c *gin.Context) {
 		question := c.Param("q")
-		articles, err := head.Fetch(confHead.Url, confHead.ApiKey, []string{}, confHead.PageSize, question)
+		articles, err := extract.FetchHead(confHead.Url, confHead.ApiKey, []string{}, confHead.PageSize, question)
 		// when there is no apis calls left display smth
 		if err != nil {
 			log.Fatal("Failed to fetched articles for specific question\n", err)
@@ -121,7 +102,27 @@ func main() {
 		c.Data(http.StatusOK, "application/json", jsonData)
 	})
 
-	// Listen and Server in 0.0.0.0:8080
-	r.Run(":8080")
-	// r.Run(":80")
+	// Listen and Serve
+	r.Run(confBack.BackendPort)
+}
+
+type DataOutput struct {
+	Total      int
+	Categories []string
+}
+
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
 }

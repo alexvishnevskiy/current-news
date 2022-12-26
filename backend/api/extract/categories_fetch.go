@@ -1,4 +1,4 @@
-package categories
+package extract
 
 import (
 	"encoding/json"
@@ -6,9 +6,11 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/alexvishnevskiy/current-news/api/config"
 )
 
-type response struct {
+type responseCat struct {
 	Status       string `json:"status"`
 	TotalResults int    `json:"totalResults"`
 	Results      []struct {
@@ -28,12 +30,13 @@ type response struct {
 	} `json:"results"`
 }
 
-func Fetch(url string, countries []string, categories []string, apiKey string) (map[string]int, error) {
+// fetch categories
+func FetchCat(url string, countries []string, categories []string, apiKey string) (map[string]int, error) {
 	categoryDict := make(map[string]int) //category->#articles
 
 	// iterate over each continent and category
 	for _, category := range categories {
-		newUrl := GetUrl(url, countries, category, apiKey)
+		newUrl := GetUrlCat(url, countries, category, apiKey)
 		// get data from news api
 		res, err := http.Get(newUrl)
 		if err != nil {
@@ -45,14 +48,14 @@ func Fetch(url string, countries []string, categories []string, apiKey string) (
 			return nil, err
 		}
 		// parse response
-		var responseObject response
+		var responseObject responseCat
 		json.Unmarshal(resp, &responseObject)
 		categoryDict[category] = responseObject.TotalResults
 	}
 	return categoryDict, nil
 }
 
-func FetchAllData(c Config) map[string]map[string]int {
+func FetchAllData(c config.Config) map[string]map[string]int {
 	// dict to store all data
 	continentsDict := make(map[string]map[string]int)
 	categories := c.GetCategories()
@@ -64,7 +67,7 @@ func FetchAllData(c Config) map[string]map[string]int {
 	for continent, countries := range continents {
 		continentsDict[continent] = make(map[string]int)
 		// get data for each continent
-		dict, err := Fetch(url, countries, categories, apiKey)
+		dict, err := FetchCat(url, countries, categories, apiKey)
 		if err == nil {
 			continentsDict[continent] = dict
 		} else {
@@ -74,7 +77,7 @@ func FetchAllData(c Config) map[string]map[string]int {
 	return continentsDict
 }
 
-func GetUrl(url string, countries []string, category string, apiKey string) string {
+func GetUrlCat(url string, countries []string, category string, apiKey string) string {
 	url = fmt.Sprintf("%s?apikey=%s&category=%s", url, apiKey, category)
 
 	if len(countries) != 0 {

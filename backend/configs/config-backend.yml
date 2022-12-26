@@ -1,0 +1,4 @@
+redis_addr:
+  "localhost:6379" #"redis:6379"
+backend_port:
+  ":8080" #":80"

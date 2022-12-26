@@ -3,12 +3,12 @@ package api
 import (
 	"fmt"
 
-	cat "github.com/alexvishnevskiy/current-news/api/categories"
-	head "github.com/alexvishnevskiy/current-news/api/headlines"
+	"github.com/alexvishnevskiy/current-news/api/config"
+	"github.com/alexvishnevskiy/current-news/api/extract"
 )
 
-func UpdateSortedSet(db *RedisDB, c cat.Config) error {
-	statsDict := cat.FetchAllData(c)
+func UpdateSortedSet(db *RedisDB, c config.Config) error {
+	statsDict := extract.FetchAllData(c)
 	if len(statsDict) != 0 {
 		for continent := range statsDict {
 			for category := range statsDict[continent] {
@@ -39,8 +39,8 @@ func GetCategoriesTop(db *RedisDB, continent string) ([]Member, error) {
 	return topCategories, nil
 }
 
-func UpdateHeadlines(db *RedisDB, c head.ConfigAPI) error {
-	articles, err := head.Fetch(c.Url, c.ApiKey, c.Sources, c.PageSize)
+func UpdateHeadlines(db *RedisDB, c config.ConfigHead) error {
+	articles, err := extract.FetchHead(c.Url, c.ApiKey, c.Sources, c.PageSize)
 	if err != nil {
 		return err
 	}
@@ -58,10 +58,10 @@ func UpdateHeadlines(db *RedisDB, c head.ConfigAPI) error {
 	return nil
 }
 
-func GetHeadlines(db *RedisDB, key string) ([]head.Article, error) {
+func GetHeadlines(db *RedisDB, key string) ([]extract.Article, error) {
 	headlines, err := db.GetSet(key)
 	if err != nil {
-		return []head.Article{}, err
+		return []extract.Article{}, err
 	}
 	return headlines, nil
 }

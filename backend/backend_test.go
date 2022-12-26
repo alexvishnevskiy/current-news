@@ -6,16 +6,16 @@ import (
 	"testing"
 
 	"github.com/alexvishnevskiy/current-news/api"
-	cat "github.com/alexvishnevskiy/current-news/api/categories"
-	head "github.com/alexvishnevskiy/current-news/api/headlines"
+	"github.com/alexvishnevskiy/current-news/api/config"
+	"github.com/alexvishnevskiy/current-news/api/extract"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
 	db         = api.RedisDB{Ctx: context.TODO()}
-	configTest cat.TestConfig
-	configApi  cat.ConfigAPI
-	configHead head.ConfigAPI
+	configTest config.TestConfig
+	configApi  config.ConfigCat
+	configHead config.ConfigHead
 )
 
 func TestDB(t *testing.T) {
@@ -49,9 +49,9 @@ func TestDB(t *testing.T) {
 	_ = db.RemoveSet("America")
 
 	// test for normal set
-	db.AddSet("articles", head.Article{Title: "article1", URL: "url1"})
-	db.AddSet("articles", head.Article{Title: "article2", URL: "url2"})
-	db.AddSet("articles", head.Article{Title: "article3", URL: "url3"})
+	db.AddSet("articles", extract.Article{Title: "article1", URL: "url1"})
+	db.AddSet("articles", extract.Article{Title: "article2", URL: "url2"})
+	db.AddSet("articles", extract.Article{Title: "article3", URL: "url3"})
 	size, _ := db.Size("articles")
 	assert.Equal(t, size, int64(3), "The size of the articles set should be 3")
 	_ = db.RemoveSet("articles")
@@ -95,7 +95,7 @@ func TestConfig(t *testing.T) {
 	assert.Greater(t, len(continents), 0, "Config is not loaded correctly")
 	assert.Greater(t, len(url), 0, "Config is not loaded correctly")
 
-	err = configHead.GetConf()
+	_ = configHead.GetConf()
 	url = configHead.Url
 	apiKey := configHead.ApiKey
 	sources := configHead.Sources
@@ -112,7 +112,7 @@ func TestFetch(t *testing.T) {
 	categories := configTest.GetCategories()
 	apiKey := configTest.GetApiKey()
 
-	res, err := cat.Fetch(url, countries, categories, apiKey)
+	res, err := extract.FetchCat(url, countries, categories, apiKey)
 	assert.Greater(t, res[categories[0]], 0, "Failed to fetch data for categories")
 	assert.Nil(t, err, "Failed to fetch data for categories")
 
@@ -122,7 +122,7 @@ func TestFetch(t *testing.T) {
 	apiKey = configHead.ApiKey
 	pageSize := configHead.PageSize
 	sources := configHead.Sources
-	articles, err := head.Fetch(url, apiKey, sources, pageSize)
+	articles, err := extract.FetchHead(url, apiKey, sources, pageSize)
 	assert.Greater(t, len(articles), 0, "Failed to fetch data for headlines")
 	assert.Nil(t, err, "Failed to fetch data for headlines")
 }

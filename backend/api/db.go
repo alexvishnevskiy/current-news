@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	head "github.com/alexvishnevskiy/current-news/api/headlines"
+	"github.com/alexvishnevskiy/current-news/api/extract"
 	"github.com/go-redis/redis/v9"
 )
 
@@ -85,7 +85,7 @@ func (db *RedisDB) GetTop(continent string) ([]Member, error) {
 	return leaderboard, nil
 }
 
-func (db *RedisDB) AddSet(key string, value head.Article) error {
+func (db *RedisDB) AddSet(key string, value extract.Article) error {
 	bytes, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -94,18 +94,18 @@ func (db *RedisDB) AddSet(key string, value head.Article) error {
 	return err
 }
 
-func (db *RedisDB) GetSet(key string) ([]head.Article, error) {
+func (db *RedisDB) GetSet(key string) ([]extract.Article, error) {
 	res, err := db.client.SMembers(db.Ctx, key).Result()
 	if err != nil {
-		return []head.Article{}, err
+		return []extract.Article{}, err
 	}
 
 	// read and unmarshall members of the set
-	setMembers := make([]head.Article, len(res))
+	setMembers := make([]extract.Article, len(res))
 	for i, member := range res {
-		var v head.Article
+		var v extract.Article
 		if err := json.Unmarshal([]byte(member), &v); err != nil {
-			return []head.Article{}, err
+			return []extract.Article{}, err
 		}
 		setMembers[i] = v
 	}
