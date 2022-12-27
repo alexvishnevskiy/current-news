@@ -1,0 +1,10 @@
+url:
+  "https://api.nytimes.com/svc/archive/v1"
+apiKey:
+  "DMIi4dPzL1fUFCQPLPoe3raxNnhGho6G"
+setKey:
+  "archive"
+startDate: # format year-month
+  "2022-10"
+frequency: # month, year
+  "month"

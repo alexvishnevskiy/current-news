@@ -12,14 +12,80 @@ import (
 )
 
 var (
-	db         = api.RedisDB{Ctx: context.TODO()}
-	configTest config.TestConfig
-	configApi  config.ConfigCat
-	configHead config.ConfigHead
+	db            = api.RedisDB{Ctx: context.TODO()}
+	timeseries    = api.TimeseriesDB{Ctx: context.TODO()}
+	configTest    config.TestConfig
+	configApi     config.ConfigCat
+	configHead    config.ConfigHead
+	configArchive config.ConfigArchive
+	configBack    config.ConfigBackend
 )
 
+func TestConfig(t *testing.T) {
+	var (
+		err        error
+		url        string
+		continents []string
+	)
+	err = configTest.GetConf()
+	url = configTest.GetUrl()
+	continents = configTest.GetContinents()["Europe"]
+
+	assert.Nil(t, err, nil, "Test config is not loaded")
+	assert.Greater(t, len(continents), 0, "Test config is not loaded correctly")
+	assert.Greater(t, len(url), 0, "Test config is not loaded correctly")
+
+	err = configApi.GetConf()
+	url = configApi.GetUrl()
+	continents = configApi.GetContinents()["Europe"]
+	assert.Nil(t, err, nil, "Api config is not loaded")
+	assert.Greater(t, len(continents), 0, "Config is not loaded correctly")
+	assert.Greater(t, len(url), 0, "Config is not loaded correctly")
+
+	err = configHead.GetConf()
+	url = configHead.Url
+	apiKey := configHead.ApiKey
+	sources := configHead.Sources
+	assert.Nil(t, err, nil, "Headlines config is not loaded")
+	assert.Greater(t, len(url), 0, "Config for headlines is not loaded correctly")
+	assert.Greater(t, len(sources), 0, "Config for headlines is not loaded correctly")
+	assert.Greater(t, len(apiKey), 0, "Config for headlines is not loaded correctly")
+
+	err = configArchive.GetConf()
+	url = configHead.Url
+	apiKey = configHead.ApiKey
+	assert.Nil(t, err, nil, "Archive config is not loaded")
+	assert.Greater(t, len(url), 0, "Config for archive is not loaded correctly")
+	assert.Greater(t, len(apiKey), 0, "Config for archive is not loaded correctly")
+}
+
 func TestDB(t *testing.T) {
-	db.Connect("localhost:6379")
+	// connect databases
+	err := db.Connect("localhost:6379")
+	assert.Nil(t, err, "Failed to connect to database")
+	err = timeseries.Connect("localhost:6379")
+	assert.Nil(t, err, "Failed to connect to timeseries database")
+
+	// timeseries tests
+	_ = timeseries.Add("timeseries1", 0, 10)
+	_ = timeseries.Add("timeseries1", 1, 5)
+	_ = timeseries.Add("timeseries1", 2, 8)
+
+	point, err := timeseries.GetLast("timeseries1")
+	assert.Nil(t, err, "Timeseries is not working correctly")
+	assert.Equal(t, point.Timestamp, int64(2), "Timeseries is not working correctly")
+	assert.Equal(t, point.Value, float64(8), "Timeseries is not working correctly")
+
+	points, err := timeseries.GetSeries("timeseries1", 0, 2)
+	assert.Nil(t, err, "Timeseries data getter is not working correctly")
+	assert.Equal(t, len(points), 3, "Timeseries data getter is not working correctly")
+	assert.Equal(t, points[1].Value, float64(5), "Timeseries data getter is not working correctly")
+
+	// clear timeseries
+	err = timeseries.Delete("timeseries1")
+	assert.Nil(t, err, "It is not possible to delete key from timeseries")
+
+	// database tests
 	_ = db.Add("Africa", 10, "business")
 	_ = db.Add("Africa", 8, "politics")
 	_ = db.Add("America", 9, "sports")
@@ -74,36 +140,6 @@ func TestDB(t *testing.T) {
 	_ = db.RemoveSet("Africa")
 }
 
-func TestConfig(t *testing.T) {
-	var (
-		err        error
-		url        string
-		continents []string
-	)
-	err = configTest.GetConf()
-	url = configTest.GetUrl()
-	continents = configTest.GetContinents()["Europe"]
-
-	assert.Nil(t, err, nil, "Test config is not loaded")
-	assert.Greater(t, len(continents), 0, "Test config is not loaded correctly")
-	assert.Greater(t, len(url), 0, "Test config is not loaded correctly")
-
-	err = configApi.GetConf()
-	url = configApi.GetUrl()
-	continents = configApi.GetContinents()["Europe"]
-	assert.Nil(t, err, nil, "Api config is not loaded")
-	assert.Greater(t, len(continents), 0, "Config is not loaded correctly")
-	assert.Greater(t, len(url), 0, "Config is not loaded correctly")
-
-	_ = configHead.GetConf()
-	url = configHead.Url
-	apiKey := configHead.ApiKey
-	sources := configHead.Sources
-	assert.Greater(t, len(url), 0, "Config for headlines is not loaded correctly")
-	assert.Greater(t, len(sources), 0, "Config for headlines is not loaded correctly")
-	assert.Greater(t, len(apiKey), 0, "Config for headlines is not loaded correctly")
-}
-
 func TestFetch(t *testing.T) {
 	// testing categories
 	_ = configTest.GetConf()
@@ -125,13 +161,27 @@ func TestFetch(t *testing.T) {
 	articles, err := extract.FetchHead(url, apiKey, sources, pageSize)
 	assert.Greater(t, len(articles), 0, "Failed to fetch data for headlines")
 	assert.Nil(t, err, "Failed to fetch data for headlines")
+
+	// testing archive
+	_ = configArchive.GetConf()
+	url = configArchive.Url
+	apiKey = configArchive.ApiKey
+	numberArticles, err := extract.FetchArchive(url, apiKey, 2019, 3)
+	assert.Nil(t, err, "Failed to fetch archive data")
+	assert.Greater(t, numberArticles, 0, "Failed to fetch data for headlines")
 }
 
 func TestDBApi(t *testing.T) {
-	db.Connect("localhost:6379")
+	_ = configTest.GetConf()
+	_ = configArchive.GetConf()
+	_ = configHead.GetConf()
+	_ = configBack.GetConf()
+
+	// connect to databases
+	db.Connect(configBack.RedisAddr)
+	timeseries.Connect(configBack.RedisAddr)
 
 	// test table update
-	_ = configTest.GetConf()
 	err := api.UpdateSortedSet(&db, &configTest)
 	assert.Nil(t, err, "Failed to update table with api")
 
@@ -155,11 +205,20 @@ func TestDBApi(t *testing.T) {
 	}
 
 	// test fetching headlines
-	_ = configHead.GetConf()
 	err = api.UpdateHeadlines(&db, configHead)
 	assert.Nil(t, err, "Failed update headlines")
 	articles, _ := api.GetHeadlines(&db, configHead.SetKey)
 	assert.Greater(t, len(articles), 0, "Failed to get headlines")
 	// clean
 	db.RemoveSet(configHead.SetKey)
+
+	// test archive data
+	err = api.InitArchive(&timeseries, configArchive)
+	assert.Nil(t, err, "Failed to initialize archive")
+	err = api.UpdateArchive(&timeseries, configArchive)
+	assert.Nil(t, err, "Failed to update archive")
+	archive, err := api.GetArchive(&timeseries, configArchive)
+	assert.Greater(t, len(archive), 0, "Failed to get archive")
+	err = timeseries.Delete(configArchive.SetKey)
+	assert.Nil(t, err, "Failed to delete archive")
 }

@@ -34,25 +34,47 @@ func main() {
 	// setup backend config
 	var confBack config.ConfigBackend
 	confBack.GetConf()
+	// setup config for archive
+	var confArchive config.ConfigArchive
+	confArchive.GetConf()
 
-	// setup database
+	// setup databases
 	var db = api.RedisDB{Ctx: context.TODO()}
+	var dbTime = api.TimeseriesDB{Ctx: context.TODO()}
 	err := db.Connect(confBack.RedisAddr)
 	if err != nil {
 		panic(err)
+	}
+	err = dbTime.Connect(confBack.RedisAddr)
+	if err != nil {
+		panic(err)
+	}
+
+	// run job to initialize archive
+	if exists, err := db.SetExists(confArchive.SetKey); !exists && err == nil {
+		err = api.InitArchive(&dbTime, confArchive)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// run background job to update categories
 	s := gocron.NewScheduler(time.UTC)
 	jobCat, _ := s.Every(conf.GetFrequency()).Hour().Do(api.UpdateSortedSet, &db, &conf)
 	// run background job to update headlines
-	jobHead, _ := s.Every(conf.Frequency).Hour().Do(api.UpdateHeadlines, &db, confHead)
+	jobHead, _ := s.Every(confHead.Frequency).Hour().Do(api.UpdateHeadlines, &db, confHead)
+	// run background job to update headlines
+	updateFreq := 24 * 30
+	if confArchive.Frequency == "year" {
+		updateFreq *= 12
+	}
+	jobArchive, _ := s.Every(updateFreq).Hour().Do(api.UpdateArchive, &dbTime, confArchive)
 	s.StartAsync()
 
 	// if it is a first time, we should update tables first
 	if exists, _ := db.SetExists(continents[0].String()); !exists {
 		for {
-			if !jobCat.IsRunning() && !jobHead.IsRunning() {
+			if !jobCat.IsRunning() && !jobHead.IsRunning() && !jobArchive.IsRunning() {
 				break
 			}
 		}
@@ -99,6 +121,18 @@ func main() {
 		}
 
 		jsonData, _ := json.Marshal(articles)
+		c.Data(http.StatusOK, "application/json", jsonData)
+	})
+
+	r.GET("/archive", func(c *gin.Context) {
+		timeseries, err := api.GetArchive(&dbTime, confArchive)
+		if err != nil {
+			log.Fatal("Failed to fetched archive articles\n", err)
+		}
+
+		sendDict := make(map[string][]api.TimeStamp)
+		sendDict["archive"] = timeseries
+		jsonData, _ := json.Marshal(sendDict)
 		c.Data(http.StatusOK, "application/json", jsonData)
 	})
 

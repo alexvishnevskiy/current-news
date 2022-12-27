@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	redistimeseries "github.com/RedisTimeSeries/redistimeseries-go"
 	"github.com/alexvishnevskiy/current-news/api/extract"
 	"github.com/go-redis/redis/v9"
 )
@@ -12,6 +13,17 @@ import (
 type RedisDB struct {
 	client *redis.Client
 	Ctx    context.Context
+}
+
+type TimeseriesDB struct {
+	client *redistimeseries.Client
+	Ctx    context.Context
+}
+
+type TimeseriesError struct{}
+
+func (m *TimeseriesError) Error() string {
+	return "Failed to connect"
 }
 
 type Member struct {
@@ -29,8 +41,37 @@ func (db *RedisDB) Connect(addr string) error {
 	return err
 }
 
-func (db *RedisDB) SetExists(continent string) (bool, error) {
-	res, err := db.client.Exists(db.Ctx, continent).Result()
+func (db *TimeseriesDB) Connect(addr string) error {
+	db.client = nil
+	db.client = redistimeseries.NewClient(addr, "series", nil)
+	if db.client == nil {
+		return &TimeseriesError{}
+	}
+	return nil
+}
+
+func (db *TimeseriesDB) Add(key string, timestamp int64, value float64) error {
+	_, err := db.client.Add(key, timestamp, value)
+	return err
+}
+
+func (db *TimeseriesDB) Delete(key string) error {
+	err := db.client.DeleteSerie(key)
+	return err
+}
+
+func (db *TimeseriesDB) GetLast(key string) (*redistimeseries.DataPoint, error) {
+	point, err := db.client.Get(key)
+	return point, err
+}
+
+func (db *TimeseriesDB) GetSeries(key string, from int64, to int64) ([]redistimeseries.DataPoint, error) {
+	points, err := db.client.Range(key, from, to)
+	return points, err
+}
+
+func (db *RedisDB) SetExists(key string) (bool, error) {
+	res, err := db.client.Exists(db.Ctx, key).Result()
 
 	if err != nil {
 		return false, err
