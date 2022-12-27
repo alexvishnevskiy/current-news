@@ -17,6 +17,7 @@ import (
 
 func main() {
 	// setup router
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.Use(CORSMiddleware())
 

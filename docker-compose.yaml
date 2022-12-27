@@ -22,7 +22,7 @@ services:
       - sashnevskiy
 
   redis:
-    image: "redis:7.0.7-bullseye"
+    image: "redis:7.0.7-bullseye" #redis/redis-stack-server
     restart: always
     
     networks:

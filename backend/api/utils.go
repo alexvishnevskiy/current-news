@@ -140,6 +140,11 @@ func UpdateArchive(db *TimeseriesDB, c config.ConfigArchive) error {
 	// get dates to fetch data
 	Year, Month, _ := time.Now().Date()
 	err = addToArchive(db, c, lastStamp.Timestamp+1, Year, int(Month), Year, int(Month))
+	if err != nil {
+		fmt.Println("Failed to update archive")
+	} else {
+		fmt.Println("Archive is updated")
+	}
 	return err
 }
 

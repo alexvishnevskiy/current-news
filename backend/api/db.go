@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	redistimeseries "github.com/RedisTimeSeries/redistimeseries-go"
 	"github.com/alexvishnevskiy/current-news/api/extract"
 	"github.com/go-redis/redis/v9"
+	red "github.com/gomodule/redigo/redis"
 )
 
 type RedisDB struct {
@@ -33,9 +35,10 @@ type Member struct {
 
 func (db *RedisDB) Connect(addr string) error {
 	db.client = redis.NewClient(&redis.Options{
-		Addr:     addr, // use default Addr
-		Password: "",   // no password set
-		DB:       0,    // use default DB
+		Username: "default",
+		Addr:     addr,
+		Password: os.Getenv("REDIS_PASSWORD"),
+		DB:       0,
 	})
 	err := db.client.Ping(db.Ctx).Err()
 	return err
@@ -43,7 +46,10 @@ func (db *RedisDB) Connect(addr string) error {
 
 func (db *TimeseriesDB) Connect(addr string) error {
 	db.client = nil
-	db.client = redistimeseries.NewClient(addr, "series", nil)
+	pool := &red.Pool{Dial: func() (red.Conn, error) {
+		return red.Dial("tcp", addr, red.DialPassword(os.Getenv("REDIS_PASSWORD")))
+	}}
+	db.client = redistimeseries.NewClientFromPool(pool, "default")
 	if db.client == nil {
 		return &TimeseriesError{}
 	}

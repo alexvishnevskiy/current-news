@@ -75,7 +75,10 @@ export default function Headlines() {
   };
 
   return (
-    <Card>
+    <Card sx={{
+      width: '100%',
+      minHeight: 300,
+    }}>
         <CardContent>
             <Typography align="left" variant="h8" component="div">
                 <b>Top headlines</b>
@@ -94,7 +97,7 @@ export default function Headlines() {
             </IconButton>
         </Paper>
         <FixedSizeList
-            height={300}
+            height={267}
             // width={450}
             itemSize={80}
             itemCount={dict.articles && dict.articles.length}

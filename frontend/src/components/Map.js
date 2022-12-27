@@ -90,7 +90,7 @@ export default function Map() {
       <Grid container spacing={1} direction="row" alignItems="center" justify="center">
         <Grid item md={7}>
           <CardContent>
-              <Typography align="left" variant="h6" component="div">
+              <Typography align="left" variant="h7" component="div">
                 <b>Ranking of article categories for each continent</b>
               </Typography>
           <WorldMap selected={selected} onSelect={selected}/>
