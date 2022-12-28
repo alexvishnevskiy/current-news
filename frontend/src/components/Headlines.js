@@ -45,7 +45,7 @@ export default function Headlines() {
   });
    
   useEffect(() => {
-    axios.get('http://localhost:8080/headlines', {mode: 'no-cors'})
+    axios.get('http://localhost:8888/headlines', {mode: 'no-cors'})
     // axios.get('http://4.227.248.158/data', {mode: 'no-cors'})
     .then(res => res.data)
     .then(res => {
@@ -64,7 +64,7 @@ export default function Headlines() {
   };
 
   const handleClick = () => {
-    axios.get(`http://localhost:8080/headlines/${dict.question}`, {mode: 'no-cors'})
+    axios.get(`http://localhost:8888/headlines/${dict.question}`, {mode: 'no-cors'})
     .then(res => res.data)
     .then(res => {
       updataData({

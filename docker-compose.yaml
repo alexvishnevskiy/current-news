@@ -2,7 +2,10 @@ version: "3"
 services:
   backend:
     restart: always
-    image: "sashnevskiy/current-news:backend"
+    build: 
+      context: './backend'
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
       - sashnevskiy
     ports:
@@ -10,6 +13,9 @@ services:
 
   frontend:
     restart: always
+    build: 
+      context: './frontend'
+      dockerfile: Dockerfile.prod
     image: "sashnevskiy/current-news:frontend"
 
     ports:
@@ -22,8 +28,12 @@ services:
       - sashnevskiy
 
   redis:
-    image: "redis:7.0.7-bullseye" #redis/redis-stack-server
+    image: redis/redis-stack-server #"redis:7.0.7-bullseye"
     restart: always
+
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - ALLOW_EMPTY_PASSWORD=yes
     
     networks:
       - sashnevskiy

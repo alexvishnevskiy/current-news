@@ -38,7 +38,7 @@ export default function ArchiveChart() {
     });
 
     useEffect(() => {
-        axios.get('http://localhost:8080/archive', {mode: 'no-cors'})
+        axios.get('http://localhost:8888/archive', {mode: 'no-cors'})
         .then(res => res.data)
         .then(res => processData(res))
         .then(res => {
