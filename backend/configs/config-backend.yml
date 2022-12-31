@@ -1,4 +1,4 @@
 redis_addr:
-  "redis:6379" #"redis-19418.c8.us-east-1-4.ec2.cloud.redislabs.com:19418"
+  "redis-19418.c8.us-east-1-4.ec2.cloud.redislabs.com:19418" #"redis-19418.c8.us-east-1-4.ec2.cloud.redislabs.com:19418"
 backend_port:
-  ":8888" #":8080"
+  ":80" #":8080"
