@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"reflect"
 	"time"
 
@@ -138,7 +139,13 @@ func main() {
 	})
 
 	// Listen and Serve
-	r.Run(confBack.BackendPort)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = confBack.BackendPort // Default port if not specified
+	} else {
+		port = ":" + port
+	}
+	r.Run(port)
 }
 
 type DataOutput struct {
