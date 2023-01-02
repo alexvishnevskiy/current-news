@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography';
 import axios from 'axios';
 import 'react-tooltip/dist/react-tooltip.css';
 import './map.css';
+import {BACKEND_URL} from '../config'
 import LinearProgress from '@mui/material/LinearProgress';
 import NorthAmericaImage from "../static/images/NorthAmerica.jpg";
 import AfricaImage from "../static/images/Africa.jpeg"
@@ -60,8 +61,7 @@ export default function Map() {
   });
 
   useEffect(() => {
-    axios.get('http://localhost:8888/categories', {mode: 'no-cors'})
-    // axios.get('http://4.227.248.158/categories', {mode: 'no-cors'})
+    axios.get(BACKEND_URL + '/categories', {mode: 'no-cors'})
     .then(res => res.data)
     .then(res => {
         updataData({

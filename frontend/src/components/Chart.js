@@ -3,6 +3,7 @@ import Card from '@mui/material/Card';
 import axios from 'axios';
 import Typography from '@mui/material/Typography';
 import CardContent from '@mui/material/CardContent';
+import {BACKEND_URL} from '../config'
 import React, { useState, useEffect} from 'react';
 
 
@@ -38,7 +39,7 @@ export default function ArchiveChart() {
     });
 
     useEffect(() => {
-        axios.get('http://localhost:8888/archive', {mode: 'no-cors'})
+        axios.get(BACKEND_URL + '/archive', {mode: 'no-cors'})
         .then(res => res.data)
         .then(res => processData(res))
         .then(res => {

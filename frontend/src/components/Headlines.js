@@ -12,6 +12,7 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import CardContent from '@mui/material/CardContent';
 import ArticleIcon from '@mui/icons-material/Article';
+import {BACKEND_URL} from '../config'
 import { FixedSizeList } from 'react-window';
 
 const Row = props => {
@@ -45,8 +46,7 @@ export default function Headlines() {
   });
    
   useEffect(() => {
-    axios.get('http://localhost:8888/headlines', {mode: 'no-cors'})
-    // axios.get('http://4.227.248.158/data', {mode: 'no-cors'})
+    axios.get(BACKEND_URL + '/headlines', {mode: 'no-cors'})
     .then(res => res.data)
     .then(res => {
       updataData({
@@ -64,7 +64,7 @@ export default function Headlines() {
   };
 
   const handleClick = () => {
-    axios.get(`http://localhost:8888/headlines/${dict.question}`, {mode: 'no-cors'})
+    axios.get(BACKEND_URL + `/headlines/${dict.question}`, {mode: 'no-cors'})
     .then(res => res.data)
     .then(res => {
       updataData({
