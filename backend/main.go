@@ -65,12 +65,8 @@ func main() {
 	jobCat, _ := s.Every(conf.GetFrequency()).Hour().Do(api.UpdateSortedSet, &db, &conf)
 	// run background job to update headlines
 	jobHead, _ := s.Every(confHead.Frequency).Hour().Do(api.UpdateHeadlines, &db, confHead)
-	// run background job to update headlines
-	updateFreq := 24 * 30
-	if confArchive.Frequency == "year" {
-		updateFreq *= 12
-	}
-	jobArchive, _ := s.Every(updateFreq).Hour().Do(api.UpdateArchive, &dbTime, confArchive)
+	// run background job to update archive
+	jobArchive, _ := s.Every(24).Hour().Do(api.UpdateArchive, &dbTime, confArchive)
 	s.StartAsync()
 
 	// if it is a first time, we should update tables first

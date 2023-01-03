@@ -2,11 +2,12 @@ package api
 
 import (
 	"fmt"
-	"github.com/alexvishnevskiy/current-news/api/config"
-	"github.com/alexvishnevskiy/current-news/api/extract"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/alexvishnevskiy/current-news/api/config"
+	"github.com/alexvishnevskiy/current-news/api/extract"
 )
 
 type TimeStamp struct {
@@ -94,7 +95,7 @@ func addToArchive(
 
 	// TODO: parallelize it
 	// iterate until we reach the end date
-	for startYear <= endYear && startMonth <= endMonth {
+	for (startYear <= endYear && startMonth <= endMonth) || (startYear < endYear && startMonth >= endMonth) {
 		res, err := extract.FetchArchive(c.Url, c.ApiKey, startYear, startMonth)
 		if err != nil {
 			return err
@@ -138,12 +139,16 @@ func UpdateArchive(db *TimeseriesDB, c config.ConfigArchive) error {
 		return err
 	}
 	// get dates to fetch data
-	Year, Month, _ := time.Now().Date()
-	err = addToArchive(db, c, lastStamp.Timestamp+1, Year, int(Month), Year, int(Month))
-	if err != nil {
-		fmt.Println("Failed to update archive")
-	} else {
-		fmt.Println("Archive is updated")
+	Year, Month, Day := time.Now().Date()
+	// simple logic
+	err = nil
+	if Day >= 28 {
+		err = addToArchive(db, c, lastStamp.Timestamp+1, Year, int(Month), Year, int(Month))
+		if err != nil {
+			fmt.Println("Failed to update archive")
+		} else {
+			fmt.Println("Archive is updated")
+		}
 	}
 	return err
 }
