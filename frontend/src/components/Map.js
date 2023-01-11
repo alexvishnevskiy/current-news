@@ -129,11 +129,11 @@ export default function Map() {
                         <Stack direction="row" spacing={2}>
                           <ListItemText primary={`${key}`}/>
                           <Box mt={2}>
-                            <ListItemText primary={`${total == 0 ? 0 : Math.round(value.Total/total*100)}%`}/>
+                            <ListItemText primary={`${total == 0 ? 0 : Math.round(value.Total/total*1000)/10}%`}/>
                           </Box>
                         </Stack>
                         <LinearProgress sx={{backgroundColor: '#bfbfbf', '& .MuiLinearProgress-bar': {backgroundColor: '#cf473bf5'}}}
-                          color="primary" variant="determinate" value={Math.round(value.Total/total*100)}/>
+                          color="primary" variant="determinate" value={Math.round(value.Total/total*1000)/10}/>
                       </Box>
                     </ListItem>
                   )
