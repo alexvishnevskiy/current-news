@@ -142,7 +142,7 @@ func UpdateArchive(db *TimeseriesDB, c config.ConfigArchive) error {
 	Year, Month, Day := time.Now().Date()
 	// simple logic
 	err = nil
-	if Day >= 28 {
+	if Day == 28 {
 		err = addToArchive(db, c, lastStamp.Timestamp+1, Year, int(Month), Year, int(Month))
 		if err != nil {
 			fmt.Println("Failed to update archive")
