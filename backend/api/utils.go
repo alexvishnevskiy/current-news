@@ -140,9 +140,15 @@ func UpdateArchive(db *TimeseriesDB, c config.ConfigArchive) error {
 	}
 	// get dates to fetch data
 	Year, Month, Day := time.Now().Date()
-	// simple logic
+	// get start dates from config
+	date := strings.Split(c.StartDate, "-")
+	startYear, _ := strconv.Atoi(date[0])
+	startMonth, _ := strconv.Atoi(date[1])
+
+	// additional condition to skip duplicates
+	delta := (Year-startYear)*12 + (int(Month) - startMonth)
 	err = nil
-	if Day == 28 {
+	if Day == 28 && int64(delta) == lastStamp.Timestamp+1 {
 		err = addToArchive(db, c, lastStamp.Timestamp+1, Year, int(Month), Year, int(Month))
 		if err != nil {
 			fmt.Println("Failed to update archive")
